@@ -7,6 +7,7 @@
 // サーバー側でHPを管理する
 int hero_hp = 100;
 int demon_hp = 300;
+bool is_demon_poisoned = false;
 
 int main() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -47,6 +48,9 @@ int main() {
             result_msg += "勇者は回復魔法を唱えた！HPが30回復した！\n";
         } else if (command == "3") {
             result_msg += "勇者は身を固めている！\n";
+        } else if (command == "4") {
+            is_demon_poisoned = true;
+            result_msg += "勇者は毒の魔法を唱えた！魔王は毒状態になった！\n";
         } else {
             result_msg += "勇者は混乱している...（無効なコマンド）\n";
         }
@@ -61,6 +65,12 @@ int main() {
                 result_msg += "魔王の反撃！勇者に30のダメージ！\n";
             }
          }
+
+         // 状態異常付与
+         if (is_demon_poisoned == true) {
+            demon_hp -= 10;
+            result_msg += "【毒】魔王は毒で10のダメージを受けた！\n";
+        }
 
 
         // 状況のまとめを作成
