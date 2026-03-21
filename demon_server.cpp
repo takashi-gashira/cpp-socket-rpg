@@ -45,15 +45,23 @@ int main() {
         } else if (command == "2") {
             hero_hp += 30;
             result_msg += "勇者は回復魔法を唱えた！HPが30回復した！\n";
+        } else if (command == "3") {
+            result_msg += "勇者は身を固めている！\n";
         } else {
             result_msg += "勇者は混乱している...（無効なコマンド）\n";
         }
 
         // 魔王の反撃（自動処理）
         if (demon_hp > 0) {
-            hero_hp -= 30;
-            result_msg += "魔王の反撃！勇者に30のダメージ！\n";
-        }
+            if (command == "3") {
+                hero_hp -= 10;
+                result_msg += "魔王の反撃！勇者に10のダメージ！\n";
+            } else {
+                hero_hp -= 30;
+                result_msg += "魔王の反撃！勇者に30のダメージ！\n";
+            }
+         }
+
 
         // 状況のまとめを作成
         result_msg += "現在のHP -> 勇者: " + std::to_string(hero_hp) + " / 魔王: " + std::to_string(demon_hp);

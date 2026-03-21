@@ -24,13 +24,14 @@ int main() {
         std::cout << "\n=== コマンドを選べ ===\n";
         std::cout << "1: 攻撃する\n";
         std::cout << "2: 回復する\n";
-        std::cout << "3: 逃げる\n";
+        std::cout << "3: 防御する\n";
+        std::cout << "4: 逃げる\n";
         std::cout << "入力 > ";
         
         std::string command;
         std::getline(std::cin, command);
 
-        if (command == "3") break;
+        if (command == "4") break;
 
         // サーバー（魔王）にコマンドの数字だけを送信する
         send(sock, command.c_str(), command.length(), 0);
