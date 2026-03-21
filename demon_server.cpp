@@ -3,13 +3,27 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <cstring>
+#include <fstream>
 
 // サーバー側でHPを管理する
 int hero_hp = 100;
 int demon_hp = 300;
 bool is_demon_poisoned = false;
 
+
 int main() {
+    std::ifstream load_file("save.txt");
+
+    // ファイルが無事に開けたか（前回セーブしたか）を確認
+    if (load_file.is_open()) {
+    load_file >> hero_hp >> demon_hp >> is_demon_poisoned;
+    load_file.close();
+
+    std::cout << "【システム】前回のセーブデータを読み込みました！\n";
+        std::cout << "復元HP -> 勇者: " << hero_hp << " / 魔王: " << demon_hp << "\n";
+    } else {
+        std::cout << "【システム】セーブデータがありません。初めからスタートします。\n";
+    }
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -38,6 +52,7 @@ int main() {
 
         std::string command(buffer);
         std::string result_msg = "";
+        std::ofstream save_file("save.txt");
 
         // 【拡張】勇者からのコマンド(文字列)を判定する論理
         if (command == "1") {
@@ -51,12 +66,16 @@ int main() {
         } else if (command == "4") {
             is_demon_poisoned = true;
             result_msg += "勇者は毒の魔法を唱えた！魔王は毒状態になった！\n";
+        } else if (command == "6") {
+            save_file << hero_hp << "\n" << demon_hp << "\n" << is_demon_poisoned << "\n";
+            save_file.close();
+            result_msg += "魔王の城の現在の状態が『save.txt』に記録された！\n";
         } else {
             result_msg += "勇者は混乱している...（無効なコマンド）\n";
         }
 
         // 魔王の反撃（自動処理）
-        if (demon_hp > 0) {
+        if (demon_hp > 0 && command != "6") {
             if (command == "3") {
                 hero_hp -= 10;
                 result_msg += "魔王の反撃！勇者に10のダメージ！\n";
@@ -67,7 +86,7 @@ int main() {
          }
 
          // 状態異常付与
-         if (is_demon_poisoned == true) {
+         if (is_demon_poisoned == true && command != "6") {
             demon_hp -= 10;
             result_msg += "【毒】魔王は毒で10のダメージを受けた！\n";
         }

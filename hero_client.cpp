@@ -27,6 +27,7 @@ int main() {
         std::cout << "3: 防御する\n";
         std::cout << "4: 毒魔法を唱える\n";
         std::cout << "5: 逃げる\n";
+        std::cout << "6: セーブする\n";
         std::cout << "入力 > ";
         
         std::string command;
