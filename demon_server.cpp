@@ -2,12 +2,14 @@
 #include <string>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <cstring> // memsetを使うため
+#include <cstring>
+
+// サーバー側でHPを管理する
+int hero_hp = 100;
+int demon_hp = 300;
 
 int main() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    
-    // ポート開放したまま他プロセスが残ってエラーになるのを防ぐ魔法のオプション
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
@@ -19,32 +21,48 @@ int main() {
     bind(server_fd, (struct sockaddr *)&address, sizeof(address));
     listen(server_fd, 3);
 
-    std::cout << "魔王「ポート8080で待っているぞ...」\n";
+    std::cout << "魔王（サーバー）起動：ポート8080で待機中...\n";
     int new_socket = accept(server_fd, nullptr, nullptr);
-    std::cout << "魔王「来たな勇者！通信回線を確立した！」\n\n";
+    std::cout << "勇者が接続してきた！戦闘開始！\n";
 
     char buffer[1024] = {0};
 
-    // 【チャットの論理】無限ループで「受信」と「送信」を繰り返す
     while (true) {
-        memset(buffer, 0, sizeof(buffer)); // 受信箱を一旦空っぽにする
-        
-        // 1. 勇者からのメッセージを待つ（受信するまでここで止まる）
+        memset(buffer, 0, sizeof(buffer));
         int valread = read(new_socket, buffer, 1024);
-        if (valread <= 0) { // 勇者が逃げた（通信切断）場合
-            std::cout << "魔王「ふはは、勇者は逃げ出したか...」\n";
+        if (valread <= 0) {
+            std::cout << "勇者が通信を切断した。\n";
             break;
         }
-        std::cout << "勇者: " << buffer << "\n";
 
-        // 2. 魔王（あなた）の反撃を入力する
-        std::cout << "魔王（あなた）の返答を入力: ";
-        std::string reply;
-        std::getline(std::cin, reply); // キーボードからの入力を読み取る
+        std::string command(buffer);
+        std::string result_msg = "";
 
-        // 3. 勇者へ送り返す
-        // .c_str() は C++の文字列を、ネットワーク用の生のデータ（C言語の文字配列）に変換する論理です
-        send(new_socket, reply.c_str(), reply.length(), 0); 
+        // 【拡張】勇者からのコマンド(文字列)を判定する論理
+        if (command == "1") {
+            demon_hp -= 20;
+            result_msg += "勇者の攻撃！魔王に20のダメージ！\n";
+        } else if (command == "2") {
+            hero_hp += 30;
+            result_msg += "勇者は回復魔法を唱えた！HPが30回復した！\n";
+        } else {
+            result_msg += "勇者は混乱している...（無効なコマンド）\n";
+        }
+
+        // 魔王の反撃（自動処理）
+        if (demon_hp > 0) {
+            hero_hp -= 30;
+            result_msg += "魔王の反撃！勇者に30のダメージ！\n";
+        }
+
+        // 状況のまとめを作成
+        result_msg += "現在のHP -> 勇者: " + std::to_string(hero_hp) + " / 魔王: " + std::to_string(demon_hp);
+
+        // クライアント（勇者）に結果を送信
+        send(new_socket, result_msg.c_str(), result_msg.length(), 0);
+        
+        // サーバー側の画面にも状況を表示
+        std::cout << "処理完了: 勇者HP=" << hero_hp << " 魔王HP=" << demon_hp << "\n";
     }
 
     close(new_socket);
