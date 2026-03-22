@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 #include <thread>
+#include <mutex>
 
 class Character {
 public:
@@ -27,6 +28,8 @@ public:
 Character hero(100);
 Character demon(300);
 
+std::mutex demon_mutex;
+
 void handle_hero(int client_socket) {
 
     char buffer[1024] = {0};
@@ -41,7 +44,16 @@ void handle_hero(int client_socket) {
 
         std::string command(buffer);
         std::string result_msg = "";
+
+        // ゲームオーバー
+        if (hero.hp <= 0) {
+            result_msg = "【ゲームオーバー】勇者はすでに息絶えている...（通信切断）\n";
+            write(client_socket, result_msg.c_str(), result_msg.length());
+            break;
+        }
+
         std::ofstream save_file("save.txt");
+        demon_mutex.lock();
 
         // 【拡張】勇者からのコマンド(文字列)を判定する論理
         if (command == "1") {
@@ -66,10 +78,10 @@ void handle_hero(int client_socket) {
         // 魔王の反撃（自動処理）
         if (demon.hp > 0 && command != "6") {
             if (command == "3") {
-                hero.hp -= 10;
+                hero.take_damage(10);
                 result_msg += "魔王の反撃！勇者に10のダメージ！\n";
             } else {
-                hero.hp -= 30;
+                hero.take_damage(30);
                 result_msg += "魔王の反撃！勇者に30のダメージ！\n";
             }
          }
@@ -79,13 +91,13 @@ void handle_hero(int client_socket) {
             demon.hp -= 10;
             result_msg += "【毒】魔王は毒で10のダメージを受けた！\n";
         }
-
+        demon_mutex.unlock();
 
         // 状況のまとめを作成
         result_msg += "現在のHP -> 勇者: " + std::to_string(hero.hp) + " / 魔王: " + std::to_string(demon.hp);
 
         // クライアント（勇者）に結果を送信
-        send(client_socket, result_msg.c_str(), result_msg.length(), 0);
+        write(client_socket, result_msg.c_str(), result_msg.length());
 
         // サーバー側の画面にも状況を表示
         std::cout << "処理完了: 勇者HP=" << hero.hp << " 魔王HP=" << demon.hp << "\n";
