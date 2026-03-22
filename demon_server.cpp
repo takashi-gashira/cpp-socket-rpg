@@ -5,22 +5,37 @@
 #include <cstring>
 #include <fstream>
 
-// サーバー側でHPを管理する
-int hero_hp = 100;
-int demon_hp = 300;
-bool is_demon_poisoned = false;
+class Character {
+public:
+    int hp;
+    bool is_poisoned;
 
+    Character(int initial_hp) {
+        hp = initial_hp;
+        is_poisoned = false;
+    }
+
+    void take_damage(int damage) {
+        hp -= damage;
+        if (hp < 0) {
+            hp = 0;
+        }
+    }
+};
+// サーバー側でHPを管理する
+Character hero(100);
+Character demon(300);
 
 int main() {
     std::ifstream load_file("save.txt");
 
     // ファイルが無事に開けたか（前回セーブしたか）を確認
     if (load_file.is_open()) {
-    load_file >> hero_hp >> demon_hp >> is_demon_poisoned;
+    load_file >> hero.hp >> demon.hp >> demon.is_poisoned;
     load_file.close();
 
     std::cout << "【システム】前回のセーブデータを読み込みました！\n";
-        std::cout << "復元HP -> 勇者: " << hero_hp << " / 魔王: " << demon_hp << "\n";
+        std::cout << "復元HP -> 勇者: " << hero.hp << " / 魔王: " << demon.hp << "\n";
     } else {
         std::cout << "【システム】セーブデータがありません。初めからスタートします。\n";
     }
@@ -56,18 +71,18 @@ int main() {
 
         // 【拡張】勇者からのコマンド(文字列)を判定する論理
         if (command == "1") {
-            demon_hp -= 20;
+            demon.take_damage(20);
             result_msg += "勇者の攻撃！魔王に20のダメージ！\n";
         } else if (command == "2") {
-            hero_hp += 30;
+            hero.hp += 30;
             result_msg += "勇者は回復魔法を唱えた！HPが30回復した！\n";
         } else if (command == "3") {
             result_msg += "勇者は身を固めている！\n";
         } else if (command == "4") {
-            is_demon_poisoned = true;
+            demon.is_poisoned = true;
             result_msg += "勇者は毒の魔法を唱えた！魔王は毒状態になった！\n";
         } else if (command == "6") {
-            save_file << hero_hp << "\n" << demon_hp << "\n" << is_demon_poisoned << "\n";
+            save_file << hero.hp << "\n" << demon.hp << "\n" << demon.is_poisoned << "\n";
             save_file.close();
             result_msg += "魔王の城の現在の状態が『save.txt』に記録された！\n";
         } else {
@@ -75,31 +90,31 @@ int main() {
         }
 
         // 魔王の反撃（自動処理）
-        if (demon_hp > 0 && command != "6") {
+        if (demon.hp > 0 && command != "6") {
             if (command == "3") {
-                hero_hp -= 10;
+                hero.hp -= 10;
                 result_msg += "魔王の反撃！勇者に10のダメージ！\n";
             } else {
-                hero_hp -= 30;
+                hero.hp -= 30;
                 result_msg += "魔王の反撃！勇者に30のダメージ！\n";
             }
          }
 
          // 状態異常付与
-         if (is_demon_poisoned == true && command != "6") {
-            demon_hp -= 10;
+         if (demon.is_poisoned == true && command != "6") {
+            demon.hp -= 10;
             result_msg += "【毒】魔王は毒で10のダメージを受けた！\n";
         }
 
 
         // 状況のまとめを作成
-        result_msg += "現在のHP -> 勇者: " + std::to_string(hero_hp) + " / 魔王: " + std::to_string(demon_hp);
+        result_msg += "現在のHP -> 勇者: " + std::to_string(hero.hp) + " / 魔王: " + std::to_string(demon.hp);
 
         // クライアント（勇者）に結果を送信
         send(new_socket, result_msg.c_str(), result_msg.length(), 0);
         
         // サーバー側の画面にも状況を表示
-        std::cout << "処理完了: 勇者HP=" << hero_hp << " 魔王HP=" << demon_hp << "\n";
+        std::cout << "処理完了: 勇者HP=" << hero.hp << " 魔王HP=" << demon.hp << "\n";
     }
 
     close(new_socket);
